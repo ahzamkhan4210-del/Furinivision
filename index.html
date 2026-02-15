@@ -65,21 +65,6 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
-        .drag-handle {
-            width: 48px;
-            height: 48px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        input, textarea, select {
-          user-select: text;
-        }
-
-        /* Hotspot Styling */
         .hotspot {
           display: block;
           width: 20px;
@@ -91,12 +76,6 @@
           cursor: pointer;
           position: relative;
         }
-
-        .hotspot:not([data-visible]) {
-          opacity: 0;
-          pointer-events: none;
-        }
-
         .annotation {
           background-color: rgba(255, 255, 255, 0.9);
           backdrop-filter: blur(8px);
@@ -116,7 +95,6 @@
           width: max-content;
           border: 1px solid rgba(154, 179, 130, 0.2);
         }
-
         .hotspot-dot {
           width: 8px;
           height: 8px;
@@ -132,7 +110,7 @@
 <script type="importmap">
 {
   "imports": {
-    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.474.0",
     "react/": "https://esm.sh/react@^19.2.4/",
     "react": "https://esm.sh/react@^19.2.4",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
@@ -140,10 +118,8 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body>
     <div id="root"></div>
-<script type="module" src="/index.tsx"></script>
 </body>
 </html>

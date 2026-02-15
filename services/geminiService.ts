@@ -1,26 +1,15 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { RoomAnalysis, FitScoreResult, Product } from "../types";
+import { RoomAnalysis } from "../types";
 
-/**
- * Robustly converts an image URL, Data URL, or Blob URL to base64.
- * Optimized for mobile file handling and vendor-uploaded previews.
- */
 export const urlToBase64 = async (url: string): Promise<string | null> => {
   if (!url) return null;
-  
-  // Direct handle for Data URLs
   if (url.startsWith('data:')) {
     const base64Index = url.indexOf('base64,');
-    if (base64Index !== -1) {
-      return url.substring(base64Index + 7);
-    }
-    return null;
+    return base64Index !== -1 ? url.substring(base64Index + 7) : null;
   }
-  
   try {
     const response = await fetch(url);
-    if (!response.ok) return null;
     const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -40,16 +29,15 @@ export const urlToBase64 = async (url: string): Promise<string | null> => {
 
 export const analyzeRoomImage = async (base64Image: string): Promise<RoomAnalysis> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const model = 'gemini-3-flash-preview';
   const cleanData = base64Image.includes('base64,') ? base64Image.split('base64,')[1] : base64Image;
   
   const response = await ai.models.generateContent({
-    model,
+    model: 'gemini-3-flash-preview',
     contents: [
       {
         parts: [
           { inlineData: { data: cleanData, mimeType: 'image/jpeg' } },
-          { text: 'Analyze this room photo. Identify its interior style, primary color palette, and room type. Suggest a vibe description for a furniture shopper. Return the results in JSON format.' }
+          { text: 'Analyze this room photo for furniture placement compatibility. Provide a detailed stylistic and spatial profile. Output MUST be valid JSON.' }
         ]
       }
     ],
@@ -58,13 +46,13 @@ export const analyzeRoomImage = async (base64Image: string): Promise<RoomAnalysi
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          style: { type: Type.STRING },
-          primaryColor: { type: Type.STRING },
-          accentColors: { type: Type.ARRAY, items: { type: Type.STRING } },
-          lighting: { type: Type.STRING },
-          roomType: { type: Type.STRING },
-          detectedObjects: { type: Type.ARRAY, items: { type: Type.STRING } },
-          vibe: { type: Type.STRING }
+          style: { type: Type.STRING, description: 'The architectural or interior design style of the room.' },
+          primaryColor: { type: Type.STRING, description: 'The dominant color of the room.' },
+          accentColors: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Supporting accent colors found in the room.' },
+          lighting: { type: Type.STRING, description: 'Description of the lighting conditions (e.g., Natural Bright, Dim Ambient).' },
+          roomType: { type: Type.STRING, description: 'The type of room (e.g., Living Room, Bedroom).' },
+          detectedObjects: { type: Type.ARRAY, items: { type: Type.STRING }, description: 'Existing furniture or decor items detected.' },
+          vibe: { type: Type.STRING, description: 'A short, creative description of the room atmosphere.' }
         },
         required: ["style", "primaryColor", "accentColors", "lighting", "roomType", "vibe"]
       }
@@ -82,52 +70,27 @@ export const generateVisualPlacement = async (
   productDescription: string
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const model = 'gemini-2.5-flash-image';
-  
   const cleanRoomData = roomBase64.includes('base64,') ? roomBase64.split('base64,')[1] : roomBase64;
   const productBase64 = await urlToBase64(productImageUrl);
 
-  const parts: any[] = [
-    {
-      inlineData: {
-        data: cleanRoomData,
-        mimeType: 'image/jpeg'
-      }
-    }
-  ];
-
+  const parts: any[] = [{ inlineData: { data: cleanRoomData, mimeType: 'image/jpeg' } }];
   if (productBase64) {
-    parts.push({
-      inlineData: {
-        data: productBase64,
-        mimeType: 'image/jpeg'
-      }
-    });
+    parts.push({ inlineData: { data: productBase64, mimeType: 'image/jpeg' } });
   }
 
   parts.push({
-    text: `FURNIVISION AI RENDERING ENGINE:
-    - Target: Place the furniture item "${productName}" (Style: ${productStyle}) into the provided room background.
-    - Constraints: Maintain relative scale based on the floor plane. Match the light source direction and temperature from the room. 
-    - Detail: Generate contact shadows where the furniture touches the floor to create realism.
-    - Style: ${productDescription}.
-    - Output: Generate a single photorealistic composite image.`
+    text: `SPATIAL RENDERING TASK: Please place the furniture piece "${productName}" into the provided room photo.
+    - Style: ${productStyle}
+    - Description: ${productDescription}
+    - Technical Requirements: Match the room's lighting intensity and direction. Ensure the piece is at a realistic scale relative to the room's geometry. Add soft grounding shadows where the legs touch the floor.`
   });
 
   const response = await ai.models.generateContent({
-    model,
+    model: 'gemini-2.5-flash-image',
     contents: [{ parts }]
   });
 
-  if (!response.candidates?.[0]?.content?.parts) {
-    throw new Error("Neural rendering engine failed. Try a different angle.");
-  }
-
-  for (const part of response.candidates[0].content.parts) {
-    if (part.inlineData) {
-      return `data:image/png;base64,${part.inlineData.data}`;
-    }
-  }
-
-  throw new Error("No visual output received from AI.");
+  const imgPart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+  if (!imgPart?.inlineData) throw new Error("Neural rendering failed. Please try a clearer room photo.");
+  return `data:image/png;base64,${imgPart.inlineData.data}`;
 };

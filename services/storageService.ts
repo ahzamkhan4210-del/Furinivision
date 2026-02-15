@@ -3,11 +3,10 @@ import { Product } from "../types";
 
 const DB_NAME = "FurniVisionDB";
 const STORE_NAME = "products";
-const DB_VERSION = 1;
 
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -23,45 +22,33 @@ export const saveProductsToDB = async (products: Product[]) => {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
-  
-  // Clear and rewrite for simplicity in sync
-  await new Promise<void>((resolve, reject) => {
-    const clearReq = store.clear();
-    clearReq.onsuccess = () => resolve();
-    clearReq.onerror = () => reject(clearReq.error);
+  await new Promise<void>((res) => {
+    const req = store.clear();
+    req.onsuccess = () => res();
   });
-
-  for (const product of products) {
-    store.add(product);
-  }
-  
-  return new Promise<void>((resolve) => {
-    tx.oncomplete = () => resolve();
-  });
+  for (const product of products) store.add(product);
+  return new Promise<void>((res) => { tx.oncomplete = () => res(); });
 };
 
 export const getProductsFromDB = async (): Promise<Product[]> => {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readonly");
   const store = tx.objectStore(STORE_NAME);
-  const request = store.getAll();
-  
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+  return new Promise((res, rej) => {
+    const req = store.getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
   });
 };
 
 export const deleteProductFromDB = async (id: string) => {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readwrite");
-  const store = tx.objectStore(STORE_NAME);
-  store.delete(id);
+  tx.objectStore(STORE_NAME).delete(id);
 };
 
 export const clearAllProductsDB = async () => {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readwrite");
-  const store = tx.objectStore(STORE_NAME);
-  store.clear();
+  tx.objectStore(STORE_NAME).clear();
 };

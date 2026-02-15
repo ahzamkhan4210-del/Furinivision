@@ -25,7 +25,7 @@ export interface Product {
     unit: string;
   };
   image: string;
-  model3d?: string; // URL or Base64 of GLB model
+  model3d?: string;
   description: string;
   style: string;
   material: string[];
@@ -43,16 +43,6 @@ export interface User {
   email: string;
 }
 
-export interface Order {
-  id: string;
-  customerId: string;
-  vendorId: string;
-  productId: string;
-  status: 'pending' | 'customizing' | 'shipped' | 'delivered';
-  date: string;
-  total: number;
-}
-
 export interface RoomAnalysis {
   style: string;
   primaryColor: string;
@@ -63,21 +53,9 @@ export interface RoomAnalysis {
   vibe: string;
 }
 
-export interface FitScoreResult {
-  score: number;
-  reasoning: string;
-  placementTips: string;
-  isSizeAppropriate: boolean;
-}
-
 export type AppView = 'home' | 'catalog' | 'details' | 'analyze' | 'ar' | 'cart' | 'login' | 'vendor-dashboard' | 'profile' | 'wishlist';
 
 export interface CartItem {
   product: Product;
   quantity: number;
-  customization?: {
-    material: string;
-    color: string;
-    dimensions: string;
-  };
 }
