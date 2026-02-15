@@ -1,0 +1,7 @@
+{
+  "name": "FurniVision",
+  "description": "Smart Furniture Commerce Platform featuring AI-powered room analysis, real-time furniture fit scores, and budget-aware room design suggestions using Gemini AI.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
